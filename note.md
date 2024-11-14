@@ -262,3 +262,79 @@ check:
 
 ```
 
+重新运行metgrid（这一步与原始再分析数据的处理ungrib无关）：
+
+```shell
+./metgrid.exe >& metgrid.log &
+
+```
+
+![image-20241114165649410](./attachment/image-20241114165649410.png)
+
+---
+
+Test: 20km全美国
+
+1. 备份namelist.wps和geo*.nc等数据，清除finaldata/
+2. 修改namelist.wps
+
+```shell
+&geogrid
+ parent_id         =   1, 1
+ parent_grid_ratio =   1, 5
+ i_parent_start    =   1, 23
+ j_parent_start    =   1, 22
+ e_we              =  451, 71
+ e_sn              =  271, 81
+!
+ geog_data_res = 'maxsnowalb_ncep+albedo_ncep+default', 'maxsnowalb_ncep+albedo_ncep+default',
+ dx = 10000.0,
+ dy = 10000.0,
+ map_proj = 'lambert',
+ ref_lat   =  40.,
+ ref_lon   =  -98.,
+ truelat1 = 45.0 ,
+ truelat2 = 45.0,
+ stand_lon =  -98.,
+
+```
+
+3. 运行geogrid.exe
+
+```shell
+./geogrid.exe > geogrid.log &
+```
+
+产生geo_em.d01.nc文件，check:
+
+![image-20241114171257146](./attachment/image-20241114171257146.png)
+
+4. 运行metgrid.exe
+
+```shell
+./metgrid.exe &>metgrid.log &
+```
+
+check:
+
+![image-20241114171848467](./attachment/image-20241114171848467.png)
+
+
+
+## 3. WRF model
+
+![image-20241114172531513](./attachment/image-20241114172531513.png)
+
+```shel
+cd test/em_real
+```
+
+![image-20241114173319513](./attachment/image-20241114173319513.png)
+
+check  path:
+
+```shell
+vim namelist.input
+```
+
+![image-20241114173511312](./attachment/image-20241114173511312.png)
