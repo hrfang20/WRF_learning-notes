@@ -101,11 +101,11 @@ ncl wrf_domain_plot.ncl	# 生成wps_show_dom.png
 /
 
 &geogrid
- parent_id         =   1, 1
+ parent_id         =   1, 1		# 母区域驱动
  parent_grid_ratio =   1, 5		# 内网格和外网格的分辨率之比
  i_parent_start    =   1, 31	# 在单区域中，start from 1
- j_parent_start    =   1, 31
- e_we              =  361, 101	# 东西方向的网格**边界**数，n->(n+1)
+ j_parent_start    =   1, 31	# 在多区域嵌套中，从左下角开始
+ e_we              =  361, 101	# 东西方向的网格**边界**数，n网格->(n+1)边界
  e_sn              =  131, 101	# 南北方向的网格**边界**数
 ...
  dx = 1.0,
@@ -225,3 +225,40 @@ vim namelist.wps	# 编排第一块时间对齐...时间插值
 ```
 
 ![image-20241114161353540](./attachment/image-20241114161353540.png)
+
+check:
+
+![image-20241114162452820](./attachment/image-20241114162452820.png)
+
+多区域嵌套时比例一般选取奇数倍（3 or 5）
+
+```shell
+&share
+ wrf_core = 'ARW',
+ max_dom = 2,
+ start_date = '2018-08-01_00:00:00', '2018-08-01_00:00:00'
+ end_date   = '2018-08-05_00:00:00', '2018-08-05_00:00:00'
+ interval_seconds = 10800
+ io_form_geogrid = 2,
+/
+
+&geogrid
+ parent_id         =   1, 1
+ parent_grid_ratio =   1, 5
+ i_parent_start    =   1, 23
+ j_parent_start    =   1, 22
+ e_we              =  61, 71
+ e_sn              =  61, 81
+
+ geog_data_res = 'maxsnowalb_ncep+albedo_ncep+default', 'maxsnowalb_ncep+albedo_ncep+default',
+ dx = 10000.0,
+ dy = 10000.0,
+ map_proj = 'lambert',
+ ref_lat   =  31.8,
+ ref_lon   =  117.2,
+ truelat1 = 45.0 ,
+ truelat2 = 45.0,
+ stand_lon =  117.2,
+
+```
+
