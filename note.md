@@ -331,10 +331,169 @@ cd test/em_real
 
 ![image-20241114173319513](./attachment/image-20241114173319513.png)
 
+### 3.1 修改配置文件
+
 check  path:
 
 ```shell
 vim namelist.input
 ```
 
+输入文件的绝对路径：
+
 ![image-20241114173511312](./attachment/image-20241114173511312.png)
+
+控制模拟时间和(inputfiles)时间间隔：
+
+<img src="./attachment/image-20241119141157716.png" alt="image-20241119141157716" style="zoom:50%;" />
+
+* 下面的'history_interval'：每多长时间输出数据（unit: minutes）
+* 'frames_per_outfile': 每个输出文件包括多少个时间段的数据
+
+对于namelist.input文件中的dx, dy等参数：查找wps中的namelist？
+
+> [!IMPORTANT]
+>
+> 在metdata/文件中查看nc文件：
+>
+> ```shell
+> ncdump -h met_em.d01.2018-08-01_00\:00\:00.nc  >& head.txt
+> ```
+
+读取其中global_attribute: dx和dy的值，使namselist与之对齐
+
+<img src="./attachment/image-20241119143228133.png" alt="image-20241119143228133" style="zoom:33%;" />
+
+其他参数同样对齐:
+
+
+<table><tr>
+<td><img src="./attachment/image-20241119144603617.png" style="zoom:25%;" /></td>
+<td><img src="./attachment/image-20241119144253948.png" alt="image-20241119144253948" style="zoom:25%;" /></td>
+</tr></table>
+物理过程：
+
+```shell
+&physics
+mp_physics                          = 10,     3,     3,		# 云物理参数化方案
+progn                               = 0,				   # 云凝结核（人类）-不考虑
+ra_lw_physics                       = 4,     1,     1,
+ra_sw_physics                       = 4,     1,     1,		# 考虑辐射效应的分辨率
+radt                                = 10,    30,    30,		# 辐射间隔时间
+sf_sfclay_physics                   = 1,     1,     1,
+sf_surface_physics                  = 2,     5,     2,
+bl_pbl_physics                      = 1,     5,     1,
+bldt                                = 0,     0,     0,
+topo_wind                           = 1,
+cu_physics                          = 1,     1,     0,		# 对流参数化方案
+cudt                                = 5,     5,     5,		# 对流参数化时间步长
+isfflx                              = 1,
+ifsnow                              = 1,
+icloud                              = 1,
+surface_input_source                = 1,
+num_soil_layers                     = 10,
+sf_urban_physics                    = 0,     0,     0,
+mp_zero_out                         = 2,
+mp_zero_out_thresh                  = 1.e-12
+maxiens                             = 1,
+maxens                              = 3,
+maxens2                             = 3,
+maxens3                             = 16,
+ensdim                              = 144,
+cu_rad_feedback                     = .false.,
+sst_update                          = 1
+sst_skin                            = 0
+tmn_update                          = 1
+usemonalb                           = .true.
+num_land_cat                        = 21
+/
+bucket_mm                           = 1.e6
+bucket_J                            = 1.e9
+
+```
+
+动力方程求解：
+
+```shell
+&dynamics
+rk_ord                              = 3,		# runge-kutta 阶数
+w_damping                           = 1,
+diff_opt                            = 1,
+km_opt                              = 4,
+diff_6th_opt                        = 0,      0,      0,
+diff_6th_factor                     = 0.12,   0.12,   0.12,
+base_temp                           = 290.
+damp_opt                            = 3,
+zdamp                               = 1000.,  5000.,  5000.,
+dampcoef                            = 0.2,    0.2,    0.2
+khdif                               = 0,      0,      0,
+kvdif                               = 0,      0,      0,
+non_hydrostatic                     = .true., .true., .true.,
+moist_adv_opt                       = 2,      1,      1,
+scalar_adv_opt                      = 2,      1,      1,
+chem_adv_opt                        = 2,      0,      0,
+tke_adv_opt                         = 2,      0,      0,
+time_step_sound                     = 4,      4,      4,
+h_mom_adv_order                     = 5,      5,      5,
+v_mom_adv_order                     = 3,      3,      3,
+h_sca_adv_order                     = 5,      5,      5,
+v_sca_adv_order                     = 3,      3,      3,
+fft_filter_lat                      = 45.,
+/
+use_theta_m                         = 0,
+
+```
+
+边界条件设置：
+
+```shell
+&bdy_control
+periodic_x                          = .true., .false.,.false.,		# 是否周期性？东->西
+symmetric_xs                        = .false.,.false.,.false.,
+symmetric_xe                        = .false.,.false.,.false.,
+open_xs                             = .false.,.false.,.false.,
+open_xe                             = .false.,.false.,.false.,
+periodic_y                          = .false.,.false.,.false.,
+symmetric_ys                        = .false.,.false.,.false.,
+symmetric_ye                        = .false.,.false.,.false.,
+open_ys                             = .false.,.false.,.false.,
+open_ye                             = .false.,.false.,.false.,
+specified                           = .true., .false.,.false.,
+spec_bdy_width                      = 5,
+spec_zone                           = 1,
+relax_zone                          = 4,
+nested                              = .false., .true., .true.,
+polar                               = .false. ,.false.,.false.,
+/
+
+```
+
+### 3.2 Running real.exe
+
+```shell
+./real.exe >& real.log &
+
+```
+
+check real.log...
+
+产生三个文件：
+
+wrfbdy_d01
+wrfinput_d01
+wrflowinp_d01
+
+check wrfinput_d01:
+
+```shell
+ncview wrfinput_d01 &
+
+```
+
+### 3.3 Running wrf.exe
+
+```shell
+./wrf.exe &>wrf.log &
+
+```
+
