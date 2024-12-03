@@ -174,7 +174,7 @@ Lambert投影：
 ![image-20241112145236402](./attachment/image-20241112145236402.png)
 
 ```shell
-ncview geo_em.d01.nc &	# 查看.nc文件
+ncview geo_em.d01.nc &	# 查看	.nc文件
 ```
 
 <img src="./attachment/image-20241112150354282.png" alt="image-20241112150354282" style="zoom:25%;" />
@@ -204,7 +204,7 @@ ls -l Vtable	# 查看Vtable链接，会有不同机构的再分析数据
 ```shell
 vim namelist.wps	# 编排第一块时间对齐...时间插值
 
-./ungrgib.exe >ungrib.log &	# 运行产生ungribdata
+./ungrib.exe >ungrib.log &	# 运行产生ungribdata
 ```
 
 ![image-20241114160100709](./attachment/image-20241114160100709.png)
@@ -371,7 +371,9 @@ vim namelist.input
 <td><img src="./attachment/image-20241119144603617.png" style="zoom:25%;" /></td>
 <td><img src="./attachment/image-20241119144253948.png" alt="image-20241119144253948" style="zoom:25%;" /></td>
 </tr></table>
-物理过程：
+time_step最大值为分辨率（km）*6
+
+物理过程：	
 
 ```shell
 &physics
@@ -494,6 +496,163 @@ ncview wrfinput_d01 &
 
 ```shell
 ./wrf.exe &>wrf.log &
+
+```
+
+---
+
+eg1. 30km - China
+
+> [!WARNING]
+>
+> 注意提前备份WPS和wrf文件！！！
+
+---
+
+eg2. 准全球区域（except 南北极）
+
+在./WPS/namelist.wps内，
+
+```shell
+&geogrid
+ parent_id         =   1, 1
+ parent_grid_ratio =   1, 5
+ i_parent_start    =   1, 23
+ j_parent_start    =   1, 22
+ e_we              =  181, 71
+ e_sn              =  71, 81
+ !
+
+ !
+ geog_data_res = 'maxsnowalb_ncep+albedo_ncep+default', 'maxsnowalb_ncep+albedo_ncep+default',
+ dx = 2.0,
+ dy = 2.0,
+ map_proj = 'lat-lon',
+ ref_lat   =  0.,
+ ref_lon   =  0.,
+ truelat1 = 45.0 ,
+ truelat2 = 45.0,
+ stand_lon =  0.,
+ geog_data_path = '/Data/zhxia/WRFCHEM/geo/v3.9'
+/
+
+```
+
+wrf里的dx和dy参见met_em*，与之对齐！！！
+
+```shell
+netcdf met_em.d01.2018-08-01_00\:00\:00 {
+dimensions:
+        Time = UNLIMITED ; // (1 currently)
+        DateStrLen = 19 ;
+        west_east = 180 ;
+        south_north = 70 ;
+        num_metgrid_levels = 32 ;
+        num_st_layers = 4 ;
+        num_sm_layers = 4 ;
+        south_north_stag = 71 ;
+        west_east_stag = 181 ;
+        z-dimension0003 = 3 ;
+        z-dimension0132 = 132 ;
+        z-dimension0012 = 12 ;
+        z-dimension0016 = 16 ;
+        z-dimension0021 = 21 ;
+
+global attributes:
+                :TITLE = "OUTPUT FROM METGRID V4.0.2" ;
+                :SIMULATION_START_DATE = "2018-08-01_00:00:00" ;
+                :WEST-EAST_GRID_DIMENSION = 181 ;
+                :SOUTH-NORTH_GRID_DIMENSION = 71 ;
+                :BOTTOM-TOP_GRID_DIMENSION = 32 ;
+                :WEST-EAST_PATCH_START_UNSTAG = 1 ;
+                :WEST-EAST_PATCH_END_UNSTAG = 180 ;
+                :WEST-EAST_PATCH_START_STAG = 1 ;
+                :WEST-EAST_PATCH_END_STAG = 181 ;
+                :SOUTH-NORTH_PATCH_START_UNSTAG = 1 ;
+                :SOUTH-NORTH_PATCH_END_UNSTAG = 70 ;
+                :SOUTH-NORTH_PATCH_START_STAG = 1 ;
+                :SOUTH-NORTH_PATCH_END_STAG = 71 ;
+                :GRIDTYPE = "C" ;
+                :DX = 222355.f ;
+                :DY = 222355.f ;
+                :DYN_OPT = 2 ;
+
+```
+
+## 4*. ncl analysis
+
+![image-20241126141316189](./attachment/image-20241126141316189.png)
+
+1-spatial-pressere-level.ncl：空间分布
+
+！参数：区域or全球？wrfout*路径
+
+![image-20241126141550857](./attachment/image-20241126141550857.png)
+
+2-meridional-line.ncl：纬向平均的经向分布
+
+...
+
+![U_pressure_850hPa_latlon](../class_11-26/eg_global/spatial-850hPa/U_pressure_850hPa_latlon.png)
+
+[wrfout visualizations](../class_11-26/)
+
+## 5. WRF-Chem
+
+在namelist.input中添加的参数：
+
+![image-20241203143236868](./attachment/image-20241203143236868.png)
+
+progn = 0 : 模式给出固定的CCN值
+
+progn = 1 : 根据排放计算CCN
+
+![image-20241203143315871](./attachment/image-20241203143315871.png)
+
+```shell
+&chem
+kemit                               = 15,
+kfire                               = 1,
+chem_opt                            = 32,     195,
+chem_in_opt                         = 0,0
+io_style_emissions                  = 101,
+io_style_fireemissions              = 101,
+chemdt                              = 5,10
+bioemdt                             = 60,       30,
+photdt                              = 30,       30,
+emiss_inpt_opt                      = 1,        101,
+emiss_opt                           = 4,        3,
+phot_opt                            = 2,        0,
+gas_drydep_opt                      = 1,        1,
+aer_drydep_opt                      = 101,      1,
+settling_option                     = 1,
+aer_op_opt                          = 1,1
+bio_emiss_opt                       = 1,        0,
+terrain_effect                      = .false.
+gas_bc_opt                          = 1,        1,
+gas_ic_opt                          = 1,        1,
+aer_bc_opt                          = 1,        1,
+aer_ic_opt                          = 1,        1,
+gaschem_onoff                       = 1,        1,
+aerchem_onoff                       = 1,        1,
+wetscav_onoff                       = 1,        0,
+cldchem_onoff                       = 1,        0,
+vertmix_onoff                       = 1,        1,
+chem_conv_tr                        = 4,        1,
+chem_conv_scav                      = 1,        1,
+seas_opt                            = 3,
+dust_opt                            = 11,
+emis_dust_factor                    = 1.0,
+dmsemis_opt                         = 1,
+biomass_burn_opt                    = 0,        0,
+plumerisefire_frq                   = 60,      30,
+plumerisefire_climate               = .true.,
+have_bcs_chem                       = .false., .false.,
+aer_ra_feedback                     = 1,        0,
+aer_aerodynres_opt                  = 2,1
+ne_area                             = 67
+budgetdiag                          = 1,
+/
 
 ```
 
